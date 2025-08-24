@@ -1,49 +1,52 @@
 using System;
 using System.Web;
-using System.Web.Script.Serialization;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Pos.Helpers
 {
     public static class WebHelper
     {
-        private static readonly JavaScriptSerializer serializer = new JavaScriptSerializer();
+        private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
+        {
+            Formatting = Formatting.None,
+            StringEscapeHandling = StringEscapeHandling.Default,
+            ContractResolver = new DefaultContractResolver(),
+            NullValueHandling = NullValueHandling.Ignore
+        };
 
         public static void WriteJson(HttpResponse response, int statusCode, object data)
         {
-            if (response == null)
-                throw new ArgumentNullException("response");
-
             response.Clear();
             response.TrySkipIisCustomErrors = true;
             response.StatusCode = statusCode;
             response.ContentType = "application/json; charset=utf-8";
             response.Charset = "utf-8";
             response.ContentEncoding = Encoding.UTF8;
-
-            string json = serializer.Serialize(data);
+            string json = JsonConvert.SerializeObject(data, JsonSettings);
             response.Write(json);
             response.Flush();
         }
+
         public static T ReadJson<T>(HttpRequest request)
         {
             if (request == null)
-                throw new ArgumentNullException("request");
-
-            using (var reader = new StreamReader(request.InputStream))
+                throw new ArgumentNullException("request null");
+            using (var reader = new StreamReader(request.InputStream, Encoding.UTF8))
             {
                 string json = reader.ReadToEnd();
-                return serializer.Deserialize<T>(json);
+                return JsonConvert.DeserializeObject<T>(json);
             }
         }
 
         public static void Json(HttpResponse response, int statusCode, bool success, string message, object data = null, object errors = null, object extra = null)
         {
             if (response == null)
-                throw new ArgumentNullException("response");
+                throw new ArgumentNullException("response null");
 
             var payload = new Dictionary<string, object>();
             payload.Add("success", success);
@@ -72,14 +75,14 @@ namespace Pos.Helpers
             Json(response, 200, true, message, data, null, extra);
         }
 
-        public static void ClientError(HttpResponse response, string message, object errors = null, int statusCode = 400, object extra = null)
+        public static void ClientError(HttpResponse response, string message, object error = null, int statusCode = 400, object extra = null)
         {
-            Json(response, statusCode, false, message, null, errors, extra);
+            Json(response, statusCode, false, message, null, error, extra);
         }
 
-        public static void ServerError(HttpResponse response, string message = "Ошибка сервера", string trace = null, object extra = null)
+        public static void ServerError(HttpResponse response, string message = "Ошибка сервера", string error = null, object extra = null)
         {
-            Json(response, 500, false, message, null, trace, extra);
+            Json(response, 500, false, message, null, error, extra);
         }
     }
 }

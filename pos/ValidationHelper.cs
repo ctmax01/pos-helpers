@@ -7,20 +7,21 @@ namespace Pos.Helpers
 {
     public static class ValidationHelper
     {
-        public static void ValidateModel<T>(T model, bool throwIfInvalid = true)
+
+        public static void ValidateModel<T>(T model)
         {
             if (model == null)
-                throw new ArgumentNullException("model", "Модель не может быть пустой");
+                throw new ClientException("Модель не может быть пустой");
 
             var context = new ValidationContext(model, null, null);
             var results = new List<ValidationResult>();
 
             bool isValid = Validator.TryValidateObject(model, context, results, true);
 
-            if (!isValid && throwIfInvalid)
+            if (!isValid)
             {
-                string errorMessage = string.Join("; ", results.Select(r => r.ErrorMessage));
-                throw new ValidationException(errorMessage);
+                var errors = results.Select(r => r.ErrorMessage).ToList();
+                throw new ClientException("Ошибка валидации", errors);
             }
         }
 

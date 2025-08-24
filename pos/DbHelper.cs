@@ -5,6 +5,8 @@ using System.IO;
 using System.Web;
 using System.Web.Script.Serialization;
 using System.Collections.Generic;
+using System.Text;
+
 
 namespace Pos.Helpers
 {
@@ -27,37 +29,24 @@ namespace Pos.Helpers
 
         public static string GetConString(HttpRequest request)
         {
-            if (request == null)
-                throw new ArgumentNullException("request");
-            string path = request.Path;
-            var segments = path.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-            if (segments.Length == 0)
-                throw new Exception("Не удалось определить branchName");
-            string branchName = segments[0];
 
-
+            string branchName = Helpers.GetBranchName(request);
             string sql = "SELECT conString FROM PosConnections WHERE branchName = @branch";
             string defaultConnection = GetDefaultConnectionString();
-            object result = ExecuteScalar(defaultConnection, sql, new Dictionary<string, object>
-            {
-                { "@branch", branchName }
-            });
+            object result = ExecuteScalar(defaultConnection, sql, Params.Create("@branch", branchName));
 
-
-            if (segments.Length == 0)
-                throw new ClientException("Не удалось определить branchName", 400);
             if (result == null || string.IsNullOrEmpty(result.ToString()))
                 throw new ClientException("Строка подключения для branch " + branchName + " не найдена", 400);
 
             string connectionString = result.ToString();
-
             if (!TestConnection(connectionString))
             {
+                string message = "Не удалось подключиться к базе для branch " + branchName;
                 throw new ClientException(
-                    "Не удалось подключиться к базе для branch " + branchName, errors: connectionString, code: 401
+                    message,
+                    error: connectionString
                 );
             }
-
             return connectionString;
         }
 

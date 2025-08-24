@@ -1,16 +1,17 @@
-using System;
+﻿using System;
+using System.Text;
 
 namespace Pos.Helpers
 {
     public class ClientException : Exception
     {
         public int Code { get; set; }
-        public object Errors { get; set; }
+        public object Error { get; set; }
 
-        public ClientException(string message, object errors = null, int code = 400)
-            : base(message)
+        public ClientException(string message, object error = null, int code = 400)
+            : base(Helpers.FixEncoding(message))
         {
-            Errors = errors;
+            Error = error;
             Code = code;
         }
     }
@@ -18,11 +19,14 @@ namespace Pos.Helpers
     public class ServerException : Exception
     {
         public int Code { get; set; }
+        public object Error { get; set; }
 
-        public ServerException(string message, int code = 500)
-            : base(message)
+        public ServerException(string message, object error = null, int code = 500)
+            : base(Helpers.FixEncoding(message))
         {
+            Error = error;
             Code = code;
         }
     }
+
 }
